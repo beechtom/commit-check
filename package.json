@@ -1,0 +1,28 @@
+{
+  "name": "commit-check",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "@actions/core": "^1.2.3",
+    "@actions/github": "^2.1.1",
+    "@octokit/rest": "^17.1.0",
+    "js-yaml": "^3.13.1"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^3.12.2"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/beechtom/commit-check.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/beechtom/commit-check/issues"
+  },
+  "homepage": "https://github.com/beechtom/commit-check#readme"
+}

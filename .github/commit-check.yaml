@@ -1,0 +1,10 @@
+rules:
+  # - rule: matches
+  #   range: any
+  #   value: '!(feature|bug|removal|deprecation|no-release-note)'
+  - rule: matches
+    range: all
+    value: '!(feature|bug)'
+  - rule: matches
+    range: all
+    value: '[A-Za-z]*'
