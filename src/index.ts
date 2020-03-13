@@ -11,7 +11,7 @@ import { Engine } from './engine'
 async function run(): Promise<void> {
   try {
     const inputs = await helpers.getInputs()
-    new Engine(inputs).run()
+    await new Engine(inputs).run()
   } catch (error) {
     core.error(error)
     core.setFailed(error.message)

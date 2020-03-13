@@ -1,10 +1,26 @@
-rules:
-  # - rule: matches
-  #   range: any
-  #   value: '!(feature|bug|removal|deprecation|no-release-note)'
-  - rule: matches
+rulesets:
+  - rule: commit-message-matches
     range: all
-    value: '!(feature|bug)'
-  - rule: matches
+    value:
+      pattern: '!(feature|bug)'
+    error: |
+      All commit messages must have a label '!feature' or '!bug'
+  - rule: commit-message-matches
+    range: none
+    value:
+      pattern: '[A-Za-z]+'
+    error: |
+      Commit messages are not allowed to have letters
+  - rule: commit-message-length
     range: all
-    value: '[A-Za-z]*'
+    value:
+      min: 3
+      max: 5
+    error: |
+      All commit messages must be between 3 and 5 characters in length
+  - rule: commit-message-line-length
+    range: none
+    value:
+      min: 1
+      max: 10
+

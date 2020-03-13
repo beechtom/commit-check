@@ -29,7 +29,7 @@ export class Rule {
 
   protected pass(): RuleResult {
     return {
-      status: 'success'
+      status: 'pass'
     } as RuleResult
   }
 

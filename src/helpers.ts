@@ -71,21 +71,15 @@ function getPull(): Pull {
  */
 function loadRules(): Ruleset[] {
   const rulesets: Ruleset[] = []
-  const file:     string    = core.getInput('rules')
+  const file:     string    = core.getInput('rulesets')
 
   try {
     let fileContents = fs.readFileSync(file, 'utf8');
     let data         = yaml.safeLoad(fileContents);
 
-    if (data.rules) {
-      for (let rule_data of data.rules) {
-        let rule = ({} as unknown) as Ruleset
-
-        rule.rule  = rule_data.rule
-        rule.range = rule_data.range
-        rule.value = rule_data.value
-
-        rulesets.push(rule)
+    if (data.rulesets) {
+      for (let ruleset of data.rulesets) {
+        rulesets.push(ruleset)
       }
     }
   } catch (e) {

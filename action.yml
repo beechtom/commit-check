@@ -2,8 +2,8 @@ name: Commit Check
 description: Validates a pull request's commits against a set of rules
 author: Tom Beech
 inputs:
-  rules:
-    description: Path to the rules file
+  rulesets:
+    description: Path to the rulesets file
     required: false
     default: .github/commit-check.yaml
   token:

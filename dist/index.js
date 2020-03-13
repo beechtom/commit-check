@@ -1734,6 +1734,27 @@ module.exports = /^#!.*/;
 
 /***/ }),
 
+/***/ 82:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const rule_1 = __webpack_require__(753);
+class CommitMessageMatches extends rule_1.Rule {
+    constructor() {
+        super(...arguments);
+        this.name = 'commit-message-matches';
+    }
+    run(value, commit) {
+        return new RegExp(value.pattern).test(commit.commit.message);
+    }
+}
+exports.CommitMessageMatches = CommitMessageMatches;
+
+
+/***/ }),
+
 /***/ 87:
 /***/ (function(module) {
 
@@ -1747,8 +1768,14 @@ module.exports = require("os");
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-var matches_1 = __webpack_require__(573);
-exports.MatchesRule = matches_1.MatchesRule;
+var rule_1 = __webpack_require__(753);
+exports.Rule = rule_1.Rule;
+var commit_message_matches_1 = __webpack_require__(82);
+exports.CommitMessageMatches = commit_message_matches_1.CommitMessageMatches;
+var commit_message_length_1 = __webpack_require__(360);
+exports.CommitMessageLength = commit_message_length_1.CommitMessageLength;
+var commit_message_line_length_1 = __webpack_require__(916);
+exports.CommitMessageLineLength = commit_message_line_length_1.CommitMessageLineLength;
 
 
 /***/ }),
@@ -2189,6 +2216,32 @@ const createTokenAuth = function createTokenAuth(token) {
 
 exports.createTokenAuth = createTokenAuth;
 //# sourceMappingURL=index.js.map
+
+
+/***/ }),
+
+/***/ 153:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const result_1 = __webpack_require__(418);
+class GenericResult extends result_1.Result {
+    constructor(status, type, message) {
+        super(status);
+        this.type = type;
+        this.message = message;
+    }
+    print() {
+        return `
+    ${this.status}: ${this.type}
+
+    ${this.message}
+    `;
+    }
+}
+exports.GenericResult = GenericResult;
 
 
 /***/ }),
@@ -3314,6 +3367,24 @@ module.exports = set;
 
 /***/ }),
 
+/***/ 171:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+var pass_result_1 = __webpack_require__(355);
+exports.PassResult = pass_result_1.PassResult;
+var fail_result_1 = __webpack_require__(577);
+exports.FailResult = fail_result_1.FailResult;
+var generic_result_1 = __webpack_require__(153);
+exports.GenericResult = generic_result_1.GenericResult;
+var result_1 = __webpack_require__(418);
+exports.Result = result_1.Result;
+
+
+/***/ }),
+
 /***/ 181:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -4157,6 +4228,15 @@ function validateAuth(auth) {
 
 "use strict";
 
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 var __importStar = (this && this.__importStar) || function (mod) {
     if (mod && mod.__esModule) return mod;
     var result = {};
@@ -4178,29 +4258,35 @@ class Engine {
         this.errors = [];
         // Map of available rules
         this.rules = {
-            matches: new rules.MatchesRule
+            'commit-message-matches': new rules.CommitMessageMatches,
+            'commit-message-length': new rules.CommitMessageLength,
+            'commit-message-line-length': new rules.CommitMessageLineLength
         };
         this.commits = inputs.commits;
         this.rulesets = inputs.rulesets;
     }
     run() {
-        for (let ruleset of this.rulesets) {
-            switch (ruleset.range) {
-                case 'all':
-                    this.validateAll(ruleset);
-                    break;
-                case 'any':
-                    this.validateAny(ruleset);
-                    break;
-                case 'none':
-                    this.validateNone(ruleset);
-                    break;
-                default:
-                    throw new Error(`Unknown range ${ruleset.range} in ruleset ${ruleset.rule}`);
+        return __awaiter(this, void 0, void 0, function* () {
+            for (let ruleset of this.rulesets) {
+                switch (ruleset.range) {
+                    case 'all':
+                        this.validateAll(ruleset);
+                        break;
+                    case 'any':
+                        this.validateAny(ruleset);
+                        break;
+                    case 'none':
+                        this.validateNone(ruleset);
+                        break;
+                    default:
+                        throw new Error(`Unknown range ${ruleset.range} in ruleset ${ruleset.rule}`);
+                }
             }
-        }
-        console.log(this.errors);
-        return 0;
+            console.log(this.errors);
+            if (this.errors.length > 0) {
+                console.log('THIS FAILED');
+            }
+        });
     }
     /**
      * Validates that all commits match the rule
@@ -4208,11 +4294,10 @@ class Engine {
      * @param commits
      */
     validateAll(ruleset) {
-        const rule = this.rules[ruleset.rule];
-        for (let commit of this.commits) {
-            let result = rule.rule(ruleset.value, commit);
-            if (result.status == 'fail' && result.error) {
-                this.errors.push(result.error);
+        const results = this.executeRuleOnCommits(ruleset);
+        for (let result of results) {
+            if (result.fail()) {
+                this.errors.push(result);
             }
         }
     }
@@ -4225,6 +4310,20 @@ class Engine {
      * Validates that none of the commits match the rule
      */
     validateNone(ruleset) {
+        const results = this.executeRuleOnCommits(ruleset);
+        for (let result of results) {
+            if (result.pass()) {
+                this.errors.push(result);
+            }
+        }
+    }
+    executeRuleOnCommits(ruleset) {
+        const rule = this.rules[ruleset.rule];
+        const results = [];
+        for (let commit of this.commits) {
+            results.push(rule.rule(ruleset, commit));
+        }
+        return results;
     }
 }
 exports.Engine = Engine;
@@ -4267,7 +4366,7 @@ function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
             const inputs = yield helpers.getInputs();
-            new engine_1.Engine(inputs).run();
+            yield new engine_1.Engine(inputs).run();
         }
         catch (error) {
             core.error(error);
@@ -17596,6 +17695,31 @@ exports.restEndpointMethods = restEndpointMethods;
 
 /***/ }),
 
+/***/ 355:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const result_1 = __webpack_require__(418);
+class PassResult extends result_1.Result {
+    constructor(ruleset, commit) {
+        super('PASS');
+        this.ruleset = ruleset;
+        this.commit = commit;
+    }
+    print() {
+        return `
+      ${this.status}: rule/${this.ruleset.rule}
+      FOR:  ${this.commit.sha}
+    `;
+    }
+}
+exports.PassResult = PassResult;
+
+
+/***/ }),
+
 /***/ 357:
 /***/ (function(module) {
 
@@ -17647,6 +17771,31 @@ function checkMode (stat, options) {
 
   return ret
 }
+
+
+/***/ }),
+
+/***/ 360:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const rule_1 = __webpack_require__(753);
+class CommitMessageLength extends rule_1.Rule {
+    constructor() {
+        super(...arguments);
+        this.name = 'commit-message-length';
+    }
+    run(value, commit) {
+        const length = commit.commit.message.length;
+        if ((value.min && length < value.min) || (value.max && length > value.max)) {
+            return false;
+        }
+        return true;
+    }
+}
+exports.CommitMessageLength = CommitMessageLength;
 
 
 /***/ }),
@@ -18220,6 +18369,34 @@ module.exports = require("stream");
 
 /***/ }),
 
+/***/ 418:
+/***/ (function(__unusedmodule, exports) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+class Result {
+    constructor(status) {
+        this.status = status.toUpperCase();
+    }
+    print() {
+        return '';
+    }
+    pass() {
+        return this.status == 'PASS';
+    }
+    fail() {
+        return this.status == 'FAIL';
+    }
+    warn() {
+        return this.status == 'WARN';
+    }
+}
+exports.Result = Result;
+
+
+/***/ }),
+
 /***/ 436:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -18785,17 +18962,13 @@ function getPull() {
  */
 function loadRules() {
     const rulesets = [];
-    const file = core.getInput('rules');
+    const file = core.getInput('rulesets');
     try {
         let fileContents = fs_1.default.readFileSync(file, 'utf8');
         let data = yaml.safeLoad(fileContents);
-        if (data.rules) {
-            for (let rule_data of data.rules) {
-                let rule = {};
-                rule.rule = rule_data.rule;
-                rule.range = rule_data.range;
-                rule.value = rule_data.value;
-                rulesets.push(rule);
+        if (data.rulesets) {
+            for (let ruleset of data.rulesets) {
+                rulesets.push(ruleset);
             }
         }
     }
@@ -20650,52 +20823,6 @@ function whichSync (cmd, opt) {
 
 /***/ }),
 
-/***/ 545:
-/***/ (function(__unusedmodule, exports) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-class Rule {
-    constructor() {
-        this.name = 'default';
-        this.type = 'undefined';
-    }
-    rule(value, commit) {
-        if (this.matches(value)) {
-            return this.run(value, commit);
-        }
-        else {
-            return this.fail('value/type-error', `Expected value for rule ${this.name} to be ${this.type}, received ${typeof value}`);
-        }
-    }
-    matches(value) {
-        return typeof value == this.type;
-    }
-    run(value, commit) {
-        return this.fail('rule/unknown-rule', `Unknown rule ${this.name}`);
-    }
-    pass() {
-        return {
-            status: 'success'
-        };
-    }
-    fail(type, message) {
-        return {
-            status: 'fail',
-            error: {
-                rule: this.name,
-                type: type,
-                message: message
-            }
-        };
-    }
-}
-exports.Rule = Rule;
-
-
-/***/ }),
-
 /***/ 549:
 /***/ (function(module) {
 
@@ -21210,31 +21337,33 @@ module.exports = new Type('tag:yaml.org,2002:js/function', {
 
 /***/ }),
 
-/***/ 573:
+/***/ 577:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const rule_1 = __webpack_require__(545);
-class MatchesRule extends rule_1.Rule {
-    constructor() {
-        super(...arguments);
-        this.name = 'matches';
-        this.type = 'string';
+const result_1 = __webpack_require__(418);
+class FailResult extends result_1.Result {
+    constructor(ruleset, commit) {
+        super('FAIL');
+        this.ruleset = ruleset;
+        this.commit = commit;
     }
-    run(value, commit) {
-        const regex = new RegExp(value);
-        const pass = regex.test(commit.commit.message);
-        if (pass) {
-            return this.pass();
+    print() {
+        let message = `
+      ${this.status}: rule/${this.ruleset.rule}
+      FOR:  ${this.commit.sha}
+    `;
+        if (this.ruleset.error) {
+            message += `
+      ${this.ruleset.error}
+      `;
         }
-        else {
-            return this.fail('rule/matches-fail', `Commit ${commit.sha} did not match regular expression ${regex}`);
-        }
+        return message;
     }
 }
-exports.MatchesRule = MatchesRule;
+exports.FailResult = FailResult;
 
 
 /***/ }),
@@ -26922,6 +27051,41 @@ module.exports.default = macosRelease;
 
 /***/ }),
 
+/***/ 753:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const Results = __importStar(__webpack_require__(171));
+class Rule {
+    constructor() {
+        this.name = 'default';
+    }
+    rule(ruleset, commit) {
+        if (this.run(ruleset.value, commit)) {
+            return new Results.PassResult(ruleset, commit);
+        }
+        else {
+            return new Results.FailResult(ruleset, commit);
+        }
+    }
+    run(value, commit) {
+        return false;
+    }
+}
+exports.Rule = Rule;
+
+
+/***/ }),
+
 /***/ 761:
 /***/ (function(module) {
 
@@ -27679,6 +27843,34 @@ function authenticationRequestError(state, error, options) {
       });
     });
 }
+
+
+/***/ }),
+
+/***/ 916:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const rule_1 = __webpack_require__(753);
+class CommitMessageLineLength extends rule_1.Rule {
+    constructor() {
+        super(...arguments);
+        this.name = 'commit-message-length';
+    }
+    run(value, commit) {
+        const lines = commit.commit.message.split("\n");
+        for (let line of lines) {
+            let length = line.length;
+            if ((value.min && length < value.min) || (value.max && length > value.max)) {
+                return false;
+            }
+        }
+        return true;
+    }
+}
+exports.CommitMessageLineLength = CommitMessageLineLength;
 
 
 /***/ }),

@@ -2,7 +2,9 @@
  * Imports
  */
 import * as rules from './rules'
+import { Result } from './results'
 import { Commit, Ruleset, Inputs, RuleError, RuleResult } from './interfaces'
+import { CORE_SCHEMA } from 'js-yaml'
 
 /**
  * Gets the inputs set by the user and the messages of the event.
@@ -13,11 +15,13 @@ export class Engine {
   rulesets: Ruleset[]
 
   // List of errors created while running rules
-  errors:   RuleError[] = []
+  errors:   Result[] = []
 
   // Map of available rules
-  rules:    { [key: string]: any } = {
-    matches: new rules.MatchesRule
+  rules:    { [key: string]: rules.Rule } = {
+    'commit-message-matches':     new rules.CommitMessageMatches,
+    'commit-message-length':      new rules.CommitMessageLength,
+    'commit-message-line-length': new rules.CommitMessageLineLength
   }
 
   constructor(inputs: Inputs) {
@@ -25,7 +29,7 @@ export class Engine {
     this.rulesets   = inputs.rulesets
   }
 
-  public run() {
+  public async run(): Promise<void> {
     for (let ruleset of this.rulesets) {
       switch (ruleset.range) {
         case 'all':
@@ -44,7 +48,9 @@ export class Engine {
 
     console.log(this.errors)
 
-    return 0
+    if (this.errors.length > 0) {
+      console.log('THIS FAILED')
+    }
   }
 
   /**
@@ -53,13 +59,11 @@ export class Engine {
    * @param commits 
    */
   private validateAll(ruleset: Ruleset) {
-    const rule = this.rules[ruleset.rule]
+    const results = this.executeRuleOnCommits(ruleset)
 
-    for (let commit of this.commits) {
-      let result = rule.rule(ruleset.value, commit)
-
-      if (result.status == 'fail' && result.error) {
-        this.errors.push(result.error)
+    for (let result of results) {
+      if (result.fail()) {
+        this.errors.push(result)
       }
     }
   }
@@ -74,5 +78,23 @@ export class Engine {
    * Validates that none of the commits match the rule
    */
   private validateNone(ruleset: Ruleset) {
+    const results = this.executeRuleOnCommits(ruleset)
+
+    for (let result of results) {
+      if (result.pass()) {
+        this.errors.push(result)
+      }
+    }
+  }
+
+  private executeRuleOnCommits(ruleset: Ruleset): Result[] {
+    const rule              = this.rules[ruleset.rule]
+    const results: Result[] = []
+
+    for (let commit of this.commits) {
+      results.push(rule.rule(ruleset, commit))
+    }
+
+    return results
   }
 }
