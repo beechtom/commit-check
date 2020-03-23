@@ -2,20 +2,17 @@
  * Imports
  */
 import * as core from '@actions/core'
-import * as helpers from './helpers'
-import { Engine } from './engine'
+import App from './app'
 
 /**
  * Main function
  */
 async function run(): Promise<void> {
-  try {
-    const inputs = await helpers.getInputs()
-    await new Engine(inputs).run()
-  } catch (error) {
-    core.error(error)
-    core.setFailed(error.message)
-  }
+  let app = new App()
+  await app.run()
+            .catch(error => {
+              core.setFailed(error.message)
+            })
 }
 
 /**

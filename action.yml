@@ -1,11 +1,11 @@
-name: Commit Check
-description: Validates a pull request's commits against a set of rules
+name: Rulesets
+description: Validate pull requests and commits against a set of rules
 author: Tom Beech
 inputs:
   rulesets:
     description: Path to the rulesets file
     required: false
-    default: .github/commit-check.yaml
+    default: .github/rulesets.yaml
   token:
     description: Github auth token
     required: true

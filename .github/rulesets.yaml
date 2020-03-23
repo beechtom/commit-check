@@ -1,0 +1,51 @@
+rulesets:
+  pulls:
+    title-matches:
+      range: always
+      params:
+        pattern: '^\(GH-[0-9]+\)'
+      error: |
+        All pull request titles must begin with a valid issue label '(GH-####)'.
+    body-length:
+      range: always
+      params:
+        min: 1
+        max: 300
+      error: |
+        Pull request body must not be empty and must not contain more than 300
+        characters.
+  commits:
+    message-matches:
+      range: once
+      params:
+        pattern: '!(feature|bug)'
+      error: |
+        All pull requests must include a release note tag in at least one commit.
+        Valid release note tags include the following:
+
+          !feature
+          !bug
+          !deprecation
+          !removal
+          !no-release-note
+
+        With the exception of !no-release-note, the tagged commit should include a
+        formatted release note. The release note should have a descriptive title,
+        a link to the related issue or pull request, and a brief summary of the
+        changes. For example:
+
+          * **Added new feature to Bolt**
+            ([#1000](https://github.com/puppetlabs/bolt/issues/1000))
+
+            Added an awesome new feature to Bolt that makes automation easier!
+    message-max-length:
+      range: always
+      params:
+        max: 300
+      error: Commit messages must be 300 characters or less
+    message-line-length:
+      range: always
+      params:
+        min: 0
+        max: 120
+      error: Lines in a commit message must be between 0 and 120 characters

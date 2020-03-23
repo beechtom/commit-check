@@ -1063,6 +1063,31 @@ function wrappy (fn, cb) {
 
 /***/ }),
 
+/***/ 45:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const commit_rule_1 = __importDefault(__webpack_require__(97));
+class MessageMinLength extends commit_rule_1.default {
+    constructor() {
+        super(...arguments);
+        this.name = 'message-min-length';
+    }
+    run(params, subject) {
+        const message = subject.commit.message;
+        return message.length >= params.min;
+    }
+}
+exports.default = MessageMinLength;
+
+
+/***/ }),
+
 /***/ 46:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
@@ -1260,6 +1285,31 @@ Object.keys(OctokitRest).forEach(key => {
 });
 
 module.exports = Octokit;
+
+
+/***/ }),
+
+/***/ 60:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const commit_rule_1 = __importDefault(__webpack_require__(97));
+class MessageLength extends commit_rule_1.default {
+    constructor() {
+        super(...arguments);
+        this.name = 'message-length';
+    }
+    run(params, subject) {
+        const message = subject.commit.message;
+        return message.length >= params.min && message.length <= params.max;
+    }
+}
+exports.default = MessageLength;
 
 
 /***/ }),
@@ -1734,23 +1784,65 @@ module.exports = /^#!.*/;
 
 /***/ }),
 
-/***/ 82:
+/***/ 80:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
 
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-const rule_1 = __webpack_require__(753);
-class CommitMessageMatches extends rule_1.Rule {
+const commit_rule_1 = __importDefault(__webpack_require__(97));
+class MessageMaxLineLength extends commit_rule_1.default {
     constructor() {
         super(...arguments);
-        this.name = 'commit-message-matches';
+        this.name = 'message-max-line-length';
     }
-    run(value, commit) {
-        return new RegExp(value.pattern).test(commit.commit.message);
+    run(params, subject) {
+        const message = subject.commit.message;
+        const lines = message.split("\n");
+        for (let line of lines) {
+            let length = line.length;
+            if (length > params.max) {
+                return false;
+            }
+        }
+        return true;
     }
 }
-exports.CommitMessageMatches = CommitMessageMatches;
+exports.default = MessageMaxLineLength;
+
+
+/***/ }),
+
+/***/ 81:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const message_matches_1 = __importDefault(__webpack_require__(927));
+const message_matches_n_1 = __importDefault(__webpack_require__(789));
+const message_length_1 = __importDefault(__webpack_require__(60));
+const message_min_length_1 = __importDefault(__webpack_require__(45));
+const message_max_length_1 = __importDefault(__webpack_require__(634));
+const message_line_length_1 = __importDefault(__webpack_require__(709));
+const message_min_line_length_1 = __importDefault(__webpack_require__(521));
+const message_max_line_length_1 = __importDefault(__webpack_require__(80));
+exports.default = {
+    'message-matches': message_matches_1.default,
+    'message-matches-n': message_matches_n_1.default,
+    'message-length': message_length_1.default,
+    'message-min-length': message_min_length_1.default,
+    'message-max-length': message_max_length_1.default,
+    'message-line-length': message_line_length_1.default,
+    'message-min-line-length': message_min_line_length_1.default,
+    'message-max-line-length': message_max_line_length_1.default
+};
 
 
 /***/ }),
@@ -1759,24 +1851,6 @@ exports.CommitMessageMatches = CommitMessageMatches;
 /***/ (function(module) {
 
 module.exports = require("os");
-
-/***/ }),
-
-/***/ 90:
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-var rule_1 = __webpack_require__(753);
-exports.Rule = rule_1.Rule;
-var commit_message_matches_1 = __webpack_require__(82);
-exports.CommitMessageMatches = commit_message_matches_1.CommitMessageMatches;
-var commit_message_length_1 = __webpack_require__(360);
-exports.CommitMessageLength = commit_message_length_1.CommitMessageLength;
-var commit_message_line_length_1 = __webpack_require__(916);
-exports.CommitMessageLineLength = commit_message_line_length_1.CommitMessageLineLength;
-
 
 /***/ }),
 
@@ -1855,6 +1929,40 @@ function withAuthorizationPrefix(authorization) {
 
   return `token ${authorization}`;
 }
+
+
+/***/ }),
+
+/***/ 97:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const rule_1 = __webpack_require__(753);
+class CommitRule extends rule_1.Rule {
+    pass(params, subject) {
+        const status = 'PASS';
+        const subjectId = subject.sha;
+        const message = this.passMessage(params, subject);
+        return new rule_1.Result(this.name, status, message, subjectId, subject);
+    }
+    passMessage(params, subject) {
+        const subjectId = subject.sha;
+        return `Commit passed ${this.name} with params ${JSON.stringify(params)}`;
+    }
+    fail(params, subject) {
+        const status = 'FAIL';
+        const subjectId = subject.sha;
+        const message = this.failMessage(params, subject);
+        return new rule_1.Result(this.name, status, message, subjectId, subject);
+    }
+    failMessage(params, subject) {
+        const subjectId = subject.sha;
+        return `Commit failed ${this.name} with params ${JSON.stringify(params)}`;
+    }
+}
+exports.default = CommitRule;
 
 
 /***/ }),
@@ -1988,6 +2096,30 @@ function deprecate (message) {
   console.warn(`DEPRECATED (@octokit/rest): ${message}`)
   loggedMessages[message] = 1
 }
+
+
+/***/ }),
+
+/***/ 111:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const pull_rule_1 = __importDefault(__webpack_require__(878));
+class BodyMatches extends pull_rule_1.default {
+    constructor() {
+        super(...arguments);
+        this.name = 'body-matches';
+    }
+    run(params, subject) {
+        return RegExp(params.pattern).test(subject.body);
+    }
+}
+exports.default = BodyMatches;
 
 
 /***/ }),
@@ -2216,32 +2348,6 @@ const createTokenAuth = function createTokenAuth(token) {
 
 exports.createTokenAuth = createTokenAuth;
 //# sourceMappingURL=index.js.map
-
-
-/***/ }),
-
-/***/ 153:
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const result_1 = __webpack_require__(418);
-class GenericResult extends result_1.Result {
-    constructor(status, type, message) {
-        super(status);
-        this.type = type;
-        this.message = message;
-    }
-    print() {
-        return `
-    ${this.status}: ${this.type}
-
-    ${this.message}
-    `;
-    }
-}
-exports.GenericResult = GenericResult;
 
 
 /***/ }),
@@ -3373,12 +3479,8 @@ module.exports = set;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-var pass_result_1 = __webpack_require__(355);
-exports.PassResult = pass_result_1.PassResult;
-var fail_result_1 = __webpack_require__(577);
-exports.FailResult = fail_result_1.FailResult;
-var generic_result_1 = __webpack_require__(153);
-exports.GenericResult = generic_result_1.GenericResult;
+var result_set_1 = __webpack_require__(721);
+exports.ResultSet = result_set_1.ResultSet;
 var result_1 = __webpack_require__(418);
 exports.Result = result_1.Result;
 
@@ -3497,6 +3599,31 @@ module.exports = new Schema({
     __webpack_require__(809)
   ]
 });
+
+
+/***/ }),
+
+/***/ 194:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const pull_request_engine_1 = __webpack_require__(365);
+const commit_engine_1 = __webpack_require__(745);
+/**
+ * Export a map of EventTypes to a list of Engines
+ * For example, the 'pull_request' event allows for applying {Rule}s to
+ * pulls and commits. Thus, the {App} will need access to the {PullRequestEngine}
+ * and the {CommitEngine}.
+ *
+ * A full list of event types can be found in the GitHub documenation:
+ * https://developer.github.com/v3/activity/events/types/
+ */
+exports.default = {
+    'pull_request': [pull_request_engine_1.PullRequestEngine, commit_engine_1.CommitEngine],
+    'push': [commit_engine_1.CommitEngine]
+};
 
 
 /***/ }),
@@ -4223,114 +4350,6 @@ function validateAuth(auth) {
 
 /***/ }),
 
-/***/ 293:
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
-    return result;
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-/**
- * Imports
- */
-const rules = __importStar(__webpack_require__(90));
-/**
- * Gets the inputs set by the user and the messages of the event.
- */
-class Engine {
-    constructor(inputs) {
-        // List of errors created while running rules
-        this.errors = [];
-        // Map of available rules
-        this.rules = {
-            'commit-message-matches': new rules.CommitMessageMatches,
-            'commit-message-length': new rules.CommitMessageLength,
-            'commit-message-line-length': new rules.CommitMessageLineLength
-        };
-        this.commits = inputs.commits;
-        this.rulesets = inputs.rulesets;
-    }
-    run() {
-        return __awaiter(this, void 0, void 0, function* () {
-            for (let ruleset of this.rulesets) {
-                switch (ruleset.range) {
-                    case 'all':
-                        this.validateAll(ruleset);
-                        break;
-                    case 'any':
-                        this.validateAny(ruleset);
-                        break;
-                    case 'none':
-                        this.validateNone(ruleset);
-                        break;
-                    default:
-                        throw new Error(`Unknown range ${ruleset.range} in ruleset ${ruleset.rule}`);
-                }
-            }
-            console.log(this.errors);
-            if (this.errors.length > 0) {
-                console.log('THIS FAILED');
-            }
-        });
-    }
-    /**
-     * Validates that all commits match the rule
-     * @param rule
-     * @param commits
-     */
-    validateAll(ruleset) {
-        const results = this.executeRuleOnCommits(ruleset);
-        for (let result of results) {
-            if (result.fail()) {
-                this.errors.push(result);
-            }
-        }
-    }
-    /**
-     * Validates that at least one commit matches the rule
-     */
-    validateAny(ruleset) {
-    }
-    /**
-     * Validates that none of the commits match the rule
-     */
-    validateNone(ruleset) {
-        const results = this.executeRuleOnCommits(ruleset);
-        for (let result of results) {
-            if (result.pass()) {
-                this.errors.push(result);
-            }
-        }
-    }
-    executeRuleOnCommits(ruleset) {
-        const rule = this.rules[ruleset.rule];
-        const results = [];
-        for (let commit of this.commits) {
-            results.push(rule.rule(ruleset, commit));
-        }
-        return results;
-    }
-}
-exports.Engine = Engine;
-
-
-/***/ }),
-
 /***/ 296:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
@@ -4352,32 +4371,64 @@ var __importStar = (this && this.__importStar) || function (mod) {
     result["default"] = mod;
     return result;
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 /**
  * Imports
  */
 const core = __importStar(__webpack_require__(68));
-const helpers = __importStar(__webpack_require__(495));
-const engine_1 = __webpack_require__(293);
+const app_1 = __importDefault(__webpack_require__(913));
 /**
  * Main function
  */
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const inputs = yield helpers.getInputs();
-            yield new engine_1.Engine(inputs).run();
-        }
-        catch (error) {
-            core.error(error);
+        let app = new app_1.default();
+        yield app.run()
+            .catch(error => {
             core.setFailed(error.message);
-        }
+        });
     });
 }
 /**
  * Main entry point
  */
 run();
+
+
+/***/ }),
+
+/***/ 302:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const pull_rule_1 = __importDefault(__webpack_require__(878));
+class TitleLength extends pull_rule_1.default {
+    constructor() {
+        super(...arguments);
+        this.name = 'title-length';
+    }
+    run(params, subject) {
+        return subject.title.length >= params.min && subject.title.length <= params.max;
+    }
+    failMessage(params, subject) {
+        const length = subject.title.length;
+        if (length < params.min) {
+            return `Title length must be at least ${params.min} but is only ${length}`;
+        }
+        else {
+            return `Title length must be no more than ${params.max} but is ${length}`;
+        }
+    }
+}
+exports.default = TitleLength;
 
 
 /***/ }),
@@ -4418,6 +4469,36 @@ function readShebang(command) {
 }
 
 module.exports = readShebang;
+
+
+/***/ }),
+
+/***/ 327:
+/***/ (function(__unusedmodule, exports) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+/**
+ * This is a lightweight class that is responsible for loading a specified rule
+ * from a map of names to {Rule}s
+ */
+class RuleLoader {
+    constructor(context) {
+        this.context = context;
+    }
+    load(name) {
+        return new this.context[name]();
+    }
+    validate(names) {
+        for (let name of names) {
+            if (!this.context[name]) {
+                throw new Error(`Unknown rule ${name}; valid rules are:\n${Object.keys(this.context).join("\n")}`);
+            }
+        }
+    }
+}
+exports.RuleLoader = RuleLoader;
 
 
 /***/ }),
@@ -17695,31 +17776,6 @@ exports.restEndpointMethods = restEndpointMethods;
 
 /***/ }),
 
-/***/ 355:
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const result_1 = __webpack_require__(418);
-class PassResult extends result_1.Result {
-    constructor(ruleset, commit) {
-        super('PASS');
-        this.ruleset = ruleset;
-        this.commit = commit;
-    }
-    print() {
-        return `
-      ${this.status}: rule/${this.ruleset.rule}
-      FOR:  ${this.commit.sha}
-    `;
-    }
-}
-exports.PassResult = PassResult;
-
-
-/***/ }),
-
 /***/ 357:
 /***/ (function(module) {
 
@@ -17775,27 +17831,59 @@ function checkMode (stat, options) {
 
 /***/ }),
 
-/***/ 360:
+/***/ 365:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
 
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-const rule_1 = __webpack_require__(753);
-class CommitMessageLength extends rule_1.Rule {
+const github = __importStar(__webpack_require__(508));
+const engine_1 = __importDefault(__webpack_require__(970));
+const pulls_1 = __importDefault(__webpack_require__(748));
+/**
+ * Runs pull type {Rule}s
+ */
+class PullRequestEngine extends engine_1.default {
     constructor() {
-        super(...arguments);
-        this.name = 'commit-message-length';
+        super(pulls_1.default);
+        this.type = 'pulls';
     }
-    run(value, commit) {
-        const length = commit.commit.message.length;
-        if ((value.min && length < value.min) || (value.max && length > value.max)) {
-            return false;
-        }
-        return true;
+    init(rulesets) {
+        return __awaiter(this, void 0, void 0, function* () {
+            switch (github.context.eventName) {
+                case 'pull_request':
+                    this.payload = new Array(github.context.payload.pull_request);
+                    break;
+                default:
+                // Do nothing
+            }
+            // Load the rulesets and validate the rules exist
+            if (rulesets['pulls'])
+                this.rulesets = new Map(Object.entries(rulesets['pulls']));
+            this.loader.validate(this.rulesets.keys());
+        });
     }
 }
-exports.CommitMessageLength = CommitMessageLength;
+exports.PullRequestEngine = PullRequestEngine;
 
 
 /***/ }),
@@ -18369,30 +18457,292 @@ module.exports = require("stream");
 
 /***/ }),
 
-/***/ 418:
-/***/ (function(__unusedmodule, exports) {
+/***/ 417:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
 
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
+const pull_rule_1 = __importDefault(__webpack_require__(878));
+class BodyLength extends pull_rule_1.default {
+    constructor() {
+        super(...arguments);
+        this.name = 'body-length';
+    }
+    run(params, subject) {
+        return subject.body.length >= params.min && subject.body.length <= params.max;
+    }
+    failMessage(params, subject) {
+        const length = subject.body.length;
+        if (length < params.min) {
+            return `Body length must be at least ${params.min} but is only ${length}`;
+        }
+        else {
+            return `Body length must be no more than ${params.max} but is ${length}`;
+        }
+    }
+}
+exports.default = BodyLength;
+
+
+/***/ }),
+
+/***/ 418:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const strip_indent_1 = __importDefault(__webpack_require__(550));
+/**
+ * A {Result} is returned from a {Rule} and describes whether a subject
+ * follows a rule. It has a few methods to determine whether the rule
+ * passed or failed and to print a human-readable result.
+ */
 class Result {
-    constructor(status) {
-        this.status = status.toUpperCase();
+    constructor(rule, status, message, subjectId, subject) {
+        this.rule = rule;
+        this.status = status;
+        this.message = message;
+        this.subjectId = subjectId;
+        this.subject = subject;
     }
-    print() {
-        return '';
-    }
+    /**
+     * Returns true if the rule passed
+     */
     pass() {
         return this.status == 'PASS';
     }
-    fail() {
-        return this.status == 'FAIL';
+    /**
+     * Returns a string with the result status for the subject
+     *
+     *    PASS c33bd380a60d5349dbb0bdd7caf5a09b62ce5db7
+     */
+    short() {
+        return strip_indent_1.default(`
+    ${this.status} ${this.subjectId}
+    `);
     }
-    warn() {
-        return this.status == 'WARN';
+    /**
+     * Returns a string with the result status for the subject,
+     * the rule name, and the message returned by the rule
+     *
+     *    FAIL c33bd380a60d5349dbb0bdd7caf5a09b62ce5db7 for message-length
+     *    Message length should be a minimum of 1 character and a maximum of 100
+     *    charcters, but had a length of 200 characters.
+     */
+    long() {
+        return strip_indent_1.default(`
+    ${this.status} ${this.subjectId} for ${this.rule}
+         ${this.message}
+    `);
+    }
+    /**
+     * Returns a map of attributes for the {Result}
+     */
+    hash() {
+        return {
+            pass: this.pass(),
+            status: this.status,
+            rule: this.rule,
+            message: this.message,
+            subjectId: this.subjectId,
+            subject: this.subject
+        };
     }
 }
 exports.Result = Result;
+
+
+/***/ }),
+
+/***/ 434:
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+"use strict";
+
+
+const isObject = val => val !== null && typeof val === 'object' && !Array.isArray(val);
+const identity = val => val;
+
+/* eslint-disable no-control-regex */
+// this is a modified version of https://github.com/chalk/ansi-regex (MIT License)
+const ANSI_REGEX = /[\u001b\u009b][[\]#;?()]*(?:(?:(?:[^\W_]*;?[^\W_]*)\u0007)|(?:(?:[0-9]{1,4}(;[0-9]{0,4})*)?[~0-9=<>cf-nqrtyA-PRZ]))/g;
+
+const create = () => {
+  const colors = { enabled: true, visible: true, styles: {}, keys: {} };
+
+  if ('FORCE_COLOR' in process.env) {
+    colors.enabled = process.env.FORCE_COLOR !== '0';
+  }
+
+  const ansi = style => {
+    let open = style.open = `\u001b[${style.codes[0]}m`;
+    let close = style.close = `\u001b[${style.codes[1]}m`;
+    let regex = style.regex = new RegExp(`\\u001b\\[${style.codes[1]}m`, 'g');
+    style.wrap = (input, newline) => {
+      if (input.includes(close)) input = input.replace(regex, close + open);
+      let output = open + input + close;
+      // see https://github.com/chalk/chalk/pull/92, thanks to the
+      // chalk contributors for this fix. However, we've confirmed that
+      // this issue is also present in Windows terminals
+      return newline ? output.replace(/\r*\n/g, `${close}$&${open}`) : output;
+    };
+    return style;
+  };
+
+  const wrap = (style, input, newline) => {
+    return typeof style === 'function' ? style(input) : style.wrap(input, newline);
+  };
+
+  const style = (input, stack) => {
+    if (input === '' || input == null) return '';
+    if (colors.enabled === false) return input;
+    if (colors.visible === false) return '';
+    let str = '' + input;
+    let nl = str.includes('\n');
+    let n = stack.length;
+    if (n > 0 && stack.includes('unstyle')) {
+      stack = [...new Set(['unstyle', ...stack])].reverse();
+    }
+    while (n-- > 0) str = wrap(colors.styles[stack[n]], str, nl);
+    return str;
+  };
+
+  const define = (name, codes, type) => {
+    colors.styles[name] = ansi({ name, codes });
+    let keys = colors.keys[type] || (colors.keys[type] = []);
+    keys.push(name);
+
+    Reflect.defineProperty(colors, name, {
+      configurable: true,
+      enumerable: true,
+      set(value) {
+        colors.alias(name, value);
+      },
+      get() {
+        let color = input => style(input, color.stack);
+        Reflect.setPrototypeOf(color, colors);
+        color.stack = this.stack ? this.stack.concat(name) : [name];
+        return color;
+      }
+    });
+  };
+
+  define('reset', [0, 0], 'modifier');
+  define('bold', [1, 22], 'modifier');
+  define('dim', [2, 22], 'modifier');
+  define('italic', [3, 23], 'modifier');
+  define('underline', [4, 24], 'modifier');
+  define('inverse', [7, 27], 'modifier');
+  define('hidden', [8, 28], 'modifier');
+  define('strikethrough', [9, 29], 'modifier');
+
+  define('black', [30, 39], 'color');
+  define('red', [31, 39], 'color');
+  define('green', [32, 39], 'color');
+  define('yellow', [33, 39], 'color');
+  define('blue', [34, 39], 'color');
+  define('magenta', [35, 39], 'color');
+  define('cyan', [36, 39], 'color');
+  define('white', [37, 39], 'color');
+  define('gray', [90, 39], 'color');
+  define('grey', [90, 39], 'color');
+
+  define('bgBlack', [40, 49], 'bg');
+  define('bgRed', [41, 49], 'bg');
+  define('bgGreen', [42, 49], 'bg');
+  define('bgYellow', [43, 49], 'bg');
+  define('bgBlue', [44, 49], 'bg');
+  define('bgMagenta', [45, 49], 'bg');
+  define('bgCyan', [46, 49], 'bg');
+  define('bgWhite', [47, 49], 'bg');
+
+  define('blackBright', [90, 39], 'bright');
+  define('redBright', [91, 39], 'bright');
+  define('greenBright', [92, 39], 'bright');
+  define('yellowBright', [93, 39], 'bright');
+  define('blueBright', [94, 39], 'bright');
+  define('magentaBright', [95, 39], 'bright');
+  define('cyanBright', [96, 39], 'bright');
+  define('whiteBright', [97, 39], 'bright');
+
+  define('bgBlackBright', [100, 49], 'bgBright');
+  define('bgRedBright', [101, 49], 'bgBright');
+  define('bgGreenBright', [102, 49], 'bgBright');
+  define('bgYellowBright', [103, 49], 'bgBright');
+  define('bgBlueBright', [104, 49], 'bgBright');
+  define('bgMagentaBright', [105, 49], 'bgBright');
+  define('bgCyanBright', [106, 49], 'bgBright');
+  define('bgWhiteBright', [107, 49], 'bgBright');
+
+  colors.ansiRegex = ANSI_REGEX;
+  colors.hasColor = colors.hasAnsi = str => {
+    colors.ansiRegex.lastIndex = 0;
+    return typeof str === 'string' && str !== '' && colors.ansiRegex.test(str);
+  };
+
+  colors.alias = (name, color) => {
+    let fn = typeof color === 'string' ? colors[color] : color;
+
+    if (typeof fn !== 'function') {
+      throw new TypeError('Expected alias to be the name of an existing color (string) or a function');
+    }
+
+    if (!fn.stack) {
+      Reflect.defineProperty(fn, 'name', { value: name });
+      colors.styles[name] = fn;
+      fn.stack = [name];
+    }
+
+    Reflect.defineProperty(colors, name, {
+      configurable: true,
+      enumerable: true,
+      set(value) {
+        colors.alias(name, value);
+      },
+      get() {
+        let color = input => style(input, color.stack);
+        Reflect.setPrototypeOf(color, colors);
+        color.stack = this.stack ? this.stack.concat(fn.stack) : fn.stack;
+        return color;
+      }
+    });
+  };
+
+  colors.theme = custom => {
+    if (!isObject(custom)) throw new TypeError('Expected theme to be an object');
+    for (let name of Object.keys(custom)) {
+      colors.alias(name, custom[name]);
+    }
+    return colors;
+  };
+
+  colors.alias('unstyle', str => {
+    if (typeof str === 'string' && str !== '') {
+      colors.ansiRegex.lastIndex = 0;
+      return str.replace(colors.ansiRegex, '');
+    }
+    return '';
+  });
+
+  colors.alias('noop', str => str);
+  colors.none = colors.clear = colors.noop;
+
+  colors.stripColor = colors.unstyle;
+  colors.symbols = __webpack_require__(820);
+  colors.define = define;
+  return colors;
+};
+
+module.exports = create();
+module.exports.create = create;
 
 
 /***/ }),
@@ -18865,117 +19215,6 @@ function authenticationRequestError(state, error, options) {
       });
       return state.octokit.request(newOptions);
     });
-}
-
-
-/***/ }),
-
-/***/ 495:
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
-    return result;
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-/**
- * Imports
- */
-const fs_1 = __importDefault(__webpack_require__(747));
-const yaml = __importStar(__webpack_require__(436));
-const core = __importStar(__webpack_require__(68));
-const github = __importStar(__webpack_require__(508));
-/**
- * Gets the inputs set by the user and the messages of the event.
- */
-function getInputs() {
-    return __awaiter(this, void 0, void 0, function* () {
-        const inputs = {};
-        // Get rules
-        inputs.rulesets = loadRules();
-        // Get commit messages for the PR
-        inputs.commits = yield getCommits();
-        return inputs;
-    });
-}
-exports.getInputs = getInputs;
-/**
- * Gets all commits for the PR
- */
-function getCommits() {
-    return __awaiter(this, void 0, void 0, function* () {
-        const pull = getPull();
-        const token = core.getInput('token', { required: true });
-        const octokit = new github.GitHub(token);
-        const { data: commits } = yield octokit.pulls.listCommits({
-            owner: pull.owner,
-            repo: pull.repo,
-            pull_number: pull.number
-        });
-        return commits;
-    });
-}
-/**
- * Gets the repository information
- */
-function getPull() {
-    var _a, _b;
-    const pull = {};
-    // Get the repository information from the default environment variable
-    const result = (_a = process.env.GITHUB_REPOSITORY) === null || _a === void 0 ? void 0 : _a.split('/');
-    if (process.env.GITHUB_REPOSITORY) {
-        const owner_repo = process.env.GITHUB_REPOSITORY.split('/');
-        pull.owner = owner_repo[0];
-        pull.repo = owner_repo[1];
-    }
-    else {
-        throw new Error(`${result} is not a valid repository`);
-    }
-    if ((_b = github.context.payload.pull_request) === null || _b === void 0 ? void 0 : _b.number) {
-        pull.number = github.context.payload.pull_request.number;
-    }
-    else {
-        throw new Error(`Event is not a pull request`);
-    }
-    return pull;
-}
-/**
- * Loads a rules file, returning an array of rules
- * Returns an empty array if the rules file does not exist
- */
-function loadRules() {
-    const rulesets = [];
-    const file = core.getInput('rulesets');
-    try {
-        let fileContents = fs_1.default.readFileSync(file, 'utf8');
-        let data = yaml.safeLoad(fileContents);
-        if (data.rulesets) {
-            for (let ruleset of data.rulesets) {
-                rulesets.push(ruleset);
-            }
-        }
-    }
-    catch (e) {
-        console.log(e);
-    }
-    return rulesets;
 }
 
 
@@ -20018,6 +20257,38 @@ module.exports = new Type('tag:yaml.org,2002:js/undefined', {
 
 /***/ }),
 
+/***/ 521:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const commit_rule_1 = __importDefault(__webpack_require__(97));
+class MessageMinLineLength extends commit_rule_1.default {
+    constructor() {
+        super(...arguments);
+        this.name = 'message-min-line-length';
+    }
+    run(params, subject) {
+        const message = subject.commit.message;
+        const lines = message.split("\n");
+        for (let line of lines) {
+            let length = line.length;
+            if (length < params.min) {
+                return false;
+            }
+        }
+        return true;
+    }
+}
+exports.default = MessageMinLineLength;
+
+
+/***/ }),
+
 /***/ 530:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -20842,6 +21113,28 @@ module.exports = function(fn) {
 
 /***/ }),
 
+/***/ 550:
+/***/ (function(module, __unusedexports, __webpack_require__) {
+
+"use strict";
+
+const minIndent = __webpack_require__(815);
+
+module.exports = string => {
+	const indent = minIndent(string);
+
+	if (indent === 0) {
+		return string;
+	}
+
+	const regex = new RegExp(`^[ \\t]{${indent}}`, 'gm');
+
+	return string.replace(regex, '');
+};
+
+
+/***/ }),
+
 /***/ 563:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
@@ -21337,37 +21630,6 @@ module.exports = new Type('tag:yaml.org,2002:js/function', {
 
 /***/ }),
 
-/***/ 577:
-/***/ (function(__unusedmodule, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const result_1 = __webpack_require__(418);
-class FailResult extends result_1.Result {
-    constructor(ruleset, commit) {
-        super('FAIL');
-        this.ruleset = ruleset;
-        this.commit = commit;
-    }
-    print() {
-        let message = `
-      ${this.status}: rule/${this.ruleset.rule}
-      FOR:  ${this.commit.sha}
-    `;
-        if (this.ruleset.error) {
-            message += `
-      ${this.ruleset.error}
-      `;
-        }
-        return message;
-    }
-}
-exports.FailResult = FailResult;
-
-
-/***/ }),
-
 /***/ 578:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -21780,6 +22042,18 @@ module.exports.sync = spawnSync;
 
 module.exports._parse = parse;
 module.exports._enoent = enoent;
+
+
+/***/ }),
+
+/***/ 581:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+var rule_loader_1 = __webpack_require__(327);
+exports.RuleLoader = rule_loader_1.RuleLoader;
 
 
 /***/ }),
@@ -24722,6 +24996,31 @@ module.exports = require("net");
 
 /***/ }),
 
+/***/ 634:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const commit_rule_1 = __importDefault(__webpack_require__(97));
+class MessageMaxLength extends commit_rule_1.default {
+    constructor() {
+        super(...arguments);
+        this.name = 'message-max-length';
+    }
+    run(params, subject) {
+        const message = subject.commit.message;
+        return message.length <= params.max;
+    }
+}
+exports.default = MessageMaxLength;
+
+
+/***/ }),
+
 /***/ 635:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -25264,6 +25563,62 @@ exports.getUserAgent = getUserAgent;
 
 /***/ }),
 
+/***/ 703:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const pull_rule_1 = __importDefault(__webpack_require__(878));
+class TitleMatches extends pull_rule_1.default {
+    constructor() {
+        super(...arguments);
+        this.name = 'title-matches';
+    }
+    run(params, subject) {
+        return RegExp(params.pattern).test(subject.title);
+    }
+}
+exports.default = TitleMatches;
+
+
+/***/ }),
+
+/***/ 709:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const commit_rule_1 = __importDefault(__webpack_require__(97));
+class MessageLineLength extends commit_rule_1.default {
+    constructor() {
+        super(...arguments);
+        this.name = 'message-line-length';
+    }
+    run(params, subject) {
+        const message = subject.commit.message;
+        const lines = message.split("\n");
+        for (let line of lines) {
+            let length = line.length;
+            if (length < params.min || length > params.max) {
+                return false;
+            }
+        }
+        return true;
+    }
+}
+exports.default = MessageLineLength;
+
+
+/***/ }),
+
 /***/ 719:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -25320,6 +25675,92 @@ function authenticationBeforeRequest(state, options) {
       options.headers.authorization = withAuthorizationPrefix(authorization);
     });
 }
+
+
+/***/ }),
+
+/***/ 721:
+/***/ (function(__unusedmodule, exports) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+/**
+ * A {ResultSet} is used to collect a list of {Result}s and determine
+ * whether the {RuleSet} passed or failed based on a given range.
+ */
+class ResultSet {
+    constructor(rule, ruleset, subject) {
+        this.rule = rule;
+        this.ruleset = ruleset;
+        this.subject = subject;
+        this.results = [];
+    }
+    /**
+     * Returns the number of results.
+     */
+    count() {
+        return this.results.length;
+    }
+    /**
+     * Returns true if there are no results.
+     */
+    empty() {
+        return this.count() == 0;
+    }
+    /**
+     * Pushes a {Result} to the {ResultSet}
+     */
+    push(result) {
+        this.results.push(result);
+    }
+    /**
+     * Returns true if the results passed based on the range.
+     *    'always' - All results passed
+     *    'once'   - At least one result passed
+     *    'never'  - No results passed
+     */
+    pass() {
+        const range = this.ruleset.range;
+        switch (range) {
+            case 'always':
+                return this.countPasses() == this.count();
+            case 'once':
+                return this.countPasses() >= 1;
+            case 'never':
+                return this.countPasses() == 0;
+            default:
+                return false;
+        }
+    }
+    /**
+     * Returns a string indicating whether the {ResultSet} passed or failed.
+     */
+    status() {
+        return this.pass() ? 'PASS' : 'FAIL';
+    }
+    hash() {
+        return {
+            pass: this.pass(),
+            status: this.status(),
+            rule: this.rule,
+            ruleset: this.ruleset,
+            results: this.results
+        };
+    }
+    /**
+     * Returns the number of results that have a 'PASS' status
+     */
+    countPasses() {
+        let count = 0;
+        for (let result of this.results) {
+            if (result.pass())
+                count++;
+        }
+        return count;
+    }
+}
+exports.ResultSet = ResultSet;
 
 
 /***/ }),
@@ -26988,6 +27429,81 @@ exports.FetchError = FetchError;
 
 /***/ }),
 
+/***/ 745:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const core = __importStar(__webpack_require__(68));
+const github = __importStar(__webpack_require__(508));
+const engine_1 = __importDefault(__webpack_require__(970));
+const commits_1 = __importDefault(__webpack_require__(81));
+class CommitEngine extends engine_1.default {
+    constructor() {
+        super(commits_1.default);
+        this.type = 'commits';
+    }
+    init(rulesets) {
+        return __awaiter(this, void 0, void 0, function* () {
+            switch (github.context.eventName) {
+                case 'push':
+                    this.payload = Array.from(github.context.payload.commits);
+                    break;
+                case 'pull_request':
+                    this.payload = yield this.getCommits();
+                    break;
+                default:
+                // Do nothing
+            }
+            // Load the rulesets and validate the rules exist
+            if (rulesets['commits'])
+                this.rulesets = new Map(Object.entries(rulesets['commits']));
+            this.loader.validate(this.rulesets.keys());
+        });
+    }
+    getCommits() {
+        var _a, _b;
+        return __awaiter(this, void 0, void 0, function* () {
+            // Create a new octokit client to retrieve commits for this pull
+            const token = core.getInput('token', { required: true });
+            const client = new github.GitHub(token);
+            // Get the repo information from the process environment
+            const [owner, repo] = (_a = process.env.GITHUB_REPOSITORY) === null || _a === void 0 ? void 0 : _a.split('/');
+            // Request data from the client
+            const { data: commits } = yield client.pulls.listCommits({
+                owner: owner,
+                repo: repo,
+                pull_number: (_b = github.context.payload.pull_request) === null || _b === void 0 ? void 0 : _b.number
+            });
+            return Array.from(commits);
+        });
+    }
+}
+exports.CommitEngine = CommitEngine;
+
+
+/***/ }),
+
 /***/ 746:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -27008,6 +27524,29 @@ module.exports = new Type('tag:yaml.org,2002:str', {
 /***/ (function(module) {
 
 module.exports = require("fs");
+
+/***/ }),
+
+/***/ 748:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const body_length_1 = __importDefault(__webpack_require__(417));
+const body_matches_1 = __importDefault(__webpack_require__(111));
+const title_length_1 = __importDefault(__webpack_require__(302));
+const title_matches_1 = __importDefault(__webpack_require__(703));
+exports.default = {
+    'body-length': body_length_1.default,
+    'body-matches': body_matches_1.default,
+    'title-length': title_length_1.default,
+    'title-matches': title_matches_1.default
+};
+
 
 /***/ }),
 
@@ -27056,29 +27595,12 @@ module.exports.default = macosRelease;
 
 "use strict";
 
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
-    return result;
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-const Results = __importStar(__webpack_require__(171));
+const results_1 = __webpack_require__(171);
+exports.Result = results_1.Result;
 class Rule {
-    constructor() {
-        this.name = 'default';
-    }
-    rule(ruleset, commit) {
-        if (this.run(ruleset.value, commit)) {
-            return new Results.PassResult(ruleset, commit);
-        }
-        else {
-            return new Results.FailResult(ruleset, commit);
-        }
-    }
-    run(value, commit) {
-        return false;
+    exec(params, subject) {
+        return this.run(params, subject) ? this.pass(params, subject) : this.fail(params, subject);
     }
 }
 exports.Rule = Rule;
@@ -27408,6 +27930,45 @@ exports.getUserAgent = getUserAgent;
 
 /***/ }),
 
+/***/ 789:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const commit_rule_1 = __importDefault(__webpack_require__(97));
+class MessageMatchesN extends commit_rule_1.default {
+    constructor() {
+        super(...arguments);
+        this.name = 'message-matches-n';
+    }
+    run(params, subject) {
+        const message = subject.commit.message;
+        let count = 0;
+        for (let pattern of params.patterns) {
+            if (new RegExp(pattern).test(message))
+                count++;
+        }
+        return count == params.count;
+    }
+    passMessage(params, subject) {
+        const message = subject.commit.message;
+        const plural = params.count == 1 ? '' : 's';
+        return `Message matches ${params.count} regular expression${plural} in /${params.patterns.join('/, /')}/`;
+    }
+    failMessage(params, subject) {
+        const plural = params.count == 1 ? '' : 's';
+        return `Message does not match ${params.count} regular expression${plural} in /${params.patterns.join('/, /')}/`;
+    }
+}
+exports.default = MessageMatchesN;
+
+
+/***/ }),
+
 /***/ 791:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -27509,6 +28070,25 @@ module.exports = new Type('tag:yaml.org,2002:map', {
 
 /***/ }),
 
+/***/ 815:
+/***/ (function(module) {
+
+"use strict";
+
+module.exports = str => {
+	const match = str.match(/^[ \t]*(?=\S)/gm);
+
+	if (!match) {
+		return 0;
+	}
+
+	// TODO: Use spread operator when targeting Node.js 6
+	return Math.min.apply(Math, match.map(x => x.length));
+};
+
+
+/***/ }),
+
 /***/ 818:
 /***/ (function(module) {
 
@@ -27558,6 +28138,84 @@ function escapeArgument(arg, doubleEscapeMetaChars) {
 
 module.exports.command = escapeCommand;
 module.exports.argument = escapeArgument;
+
+
+/***/ }),
+
+/***/ 820:
+/***/ (function(module) {
+
+"use strict";
+
+
+const isHyper = process.env.TERM_PROGRAM === 'Hyper';
+const isWindows = process.platform === 'win32';
+const isLinux = process.platform === 'linux';
+
+const common = {
+  ballotDisabled: '☒',
+  ballotOff: '☐',
+  ballotOn: '☑',
+  bullet: '•',
+  bulletWhite: '◦',
+  fullBlock: '█',
+  heart: '❤',
+  identicalTo: '≡',
+  line: '─',
+  mark: '※',
+  middot: '·',
+  minus: '－',
+  multiplication: '×',
+  obelus: '÷',
+  pencilDownRight: '✎',
+  pencilRight: '✏',
+  pencilUpRight: '✐',
+  percent: '%',
+  pilcrow2: '❡',
+  pilcrow: '¶',
+  plusMinus: '±',
+  section: '§',
+  starsOff: '☆',
+  starsOn: '★',
+  upDownArrow: '↕'
+};
+
+const windows = Object.assign({}, common, {
+  check: '√',
+  cross: '×',
+  ellipsisLarge: '...',
+  ellipsis: '...',
+  info: 'i',
+  question: '?',
+  questionSmall: '?',
+  pointer: '>',
+  pointerSmall: '»',
+  radioOff: '( )',
+  radioOn: '(*)',
+  warning: '‼'
+});
+
+const other = Object.assign({}, common, {
+  ballotCross: '✘',
+  check: '✔',
+  cross: '✖',
+  ellipsisLarge: '⋯',
+  ellipsis: '…',
+  info: 'ℹ',
+  question: '?',
+  questionFull: '？',
+  questionSmall: '﹖',
+  pointer: isLinux ? '▸' : '❯',
+  pointerSmall: isLinux ? '‣' : '›',
+  radioOff: '◯',
+  radioOn: '◉',
+  warning: '⚠'
+});
+
+module.exports = (isWindows && !isHyper) ? windows : other;
+Reflect.defineProperty(module.exports, 'common', { enumerable: false, value: common });
+Reflect.defineProperty(module.exports, 'windows', { enumerable: false, value: windows });
+Reflect.defineProperty(module.exports, 'other', { enumerable: false, value: other });
 
 
 /***/ }),
@@ -27709,6 +28367,40 @@ function Octokit(plugins, options) {
 
 /***/ }),
 
+/***/ 878:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const rule_1 = __webpack_require__(753);
+class PullRule extends rule_1.Rule {
+    pass(params, subject) {
+        const status = 'PASS';
+        const subjectId = subject.number;
+        const message = this.passMessage(params, subject);
+        return new rule_1.Result(this.name, status, message, subjectId, subject);
+    }
+    passMessage(params, subject) {
+        const subjectId = subject.number;
+        return `Pull passed ${this.name} with params ${JSON.stringify(params)}`;
+    }
+    fail(params, subject) {
+        const status = 'FAIL';
+        const subjectId = subject.number;
+        const message = this.failMessage(params, subject);
+        return new rule_1.Result(this.name, status, message, subjectId, subject);
+    }
+    failMessage(params, subject) {
+        const subjectId = subject.number;
+        return `Pull failed ${this.name} with params ${JSON.stringify(params)}`;
+    }
+}
+exports.default = PullRule;
+
+
+/***/ }),
+
 /***/ 883:
 /***/ (function(module, __unusedexports, __webpack_require__) {
 
@@ -27847,30 +28539,99 @@ function authenticationRequestError(state, error, options) {
 
 /***/ }),
 
-/***/ 916:
+/***/ 913:
 /***/ (function(__unusedmodule, exports, __webpack_require__) {
 
 "use strict";
 
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-const rule_1 = __webpack_require__(753);
-class CommitMessageLineLength extends rule_1.Rule {
+const fs_1 = __importDefault(__webpack_require__(747));
+const yaml = __importStar(__webpack_require__(436));
+const core = __importStar(__webpack_require__(68));
+const github = __importStar(__webpack_require__(508));
+const engines_1 = __importDefault(__webpack_require__(194));
+const outputter_1 = __importDefault(__webpack_require__(990));
+class App {
     constructor() {
-        super(...arguments);
-        this.name = 'commit-message-length';
+        this.rulesets = this.loadRulesets();
+        this.engines = engines_1.default;
+        this.event = github.context.eventName;
+        this.outputter = new outputter_1.default;
     }
-    run(value, commit) {
-        const lines = commit.commit.message.split("\n");
-        for (let line of lines) {
-            let length = line.length;
-            if ((value.min && length < value.min) || (value.max && length > value.max)) {
-                return false;
+    run() {
+        return __awaiter(this, void 0, void 0, function* () {
+            let engines = this.engines[this.event];
+            if (engines) {
+                for (let constructor of engines) {
+                    // Run the engine
+                    let engine = new constructor();
+                    yield engine.init(this.rulesets);
+                    engine.run();
+                    // Output the {ResultSet}s and summary if there are any
+                    if (engine.any()) {
+                        let results = engine.results();
+                        this.outputter.printSeparator(`\u29BE Running rulesets for ${engine.type}\n`);
+                        for (let resultset of engine.results()) {
+                            this.outputter.printResultSet(resultset);
+                            // Catch any failed {ResultSet}s here
+                            if (!resultset.pass())
+                                this.fail();
+                        }
+                        this.outputter.printSummary(engine.results());
+                    }
+                }
+            }
+            else {
+                throw new Error(`Event type ${this.event} is not supported`);
+            }
+        });
+    }
+    /**
+     * Loads a rulesets.yaml file
+     */
+    loadRulesets() {
+        const file = core.getInput('rulesets');
+        try {
+            let fileContents = fs_1.default.readFileSync(file, 'utf8');
+            let data = yaml.safeLoad(fileContents);
+            if (data.rulesets) {
+                return data.rulesets;
+            }
+            else {
+                throw new Error(`Did not find field 'rulesets' in file ${file}`);
             }
         }
-        return true;
+        catch (e) {
+            throw e;
+        }
+    }
+    /**
+     * Sets the process exit code to 1 so the check fails
+     */
+    fail() {
+        process.exitCode = core.ExitCode.Failure;
     }
 }
-exports.CommitMessageLineLength = CommitMessageLineLength;
+exports.default = App;
 
 
 /***/ }),
@@ -27887,6 +28648,43 @@ module.exports = new Type('tag:yaml.org,2002:seq', {
   kind: 'sequence',
   construct: function (data) { return data !== null ? data : []; }
 });
+
+
+/***/ }),
+
+/***/ 927:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const commit_rule_1 = __importDefault(__webpack_require__(97));
+class MessageMatches extends commit_rule_1.default {
+    constructor() {
+        super(...arguments);
+        this.name = 'message-matches';
+    }
+    run(params, subject) {
+        const message = subject.commit.message;
+        return new RegExp(params.pattern).test(message);
+    }
+    passMessage(params, subject) {
+        const message = subject.commit.message;
+        const match = RegExp(params.pattern).exec(message);
+        let begin = match.index - 5;
+        let end = match.index + match[0].length + 5;
+        if (begin < 0)
+            begin = 0;
+        return `Message matches regular expression /${params.pattern}/ at ...${message.slice(begin, end)}...`;
+    }
+    failMessage(params, subject) {
+        return `Message does not match regular expression /${params.pattern}/`;
+    }
+}
+exports.default = MessageMatches;
 
 
 /***/ }),
@@ -28305,6 +29103,59 @@ module.exports = new Type('tag:yaml.org,2002:js/regexp', {
   predicate: isRegExp,
   represent: representJavascriptRegExp
 });
+
+
+/***/ }),
+
+/***/ 970:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const loaders_1 = __webpack_require__(581);
+const results_1 = __webpack_require__(171);
+/**
+ * The {Engine} class is responsible for running a set of {Rule}s
+ */
+class Engine {
+    constructor(rules) {
+        this.loader = new loaders_1.RuleLoader(rules);
+        this.rulesets = new Map;
+        this.resultsets = new Array;
+        this.payload = new Array;
+    }
+    /**
+     * Loops over the {RuleSet}s loaded by the {Engine} and runs each {Rule}
+     * against each subject from the payload. {Result}s from the run are added
+     * to a {ResultSet} which is later used by the {App} to determine whether
+     * the payload passed and output the results.
+     */
+    run() {
+        for (const [name, ruleset] of this.rulesets.entries()) {
+            let resultset = new results_1.ResultSet(name, ruleset, this.payload);
+            let rule = this.loader.load(name);
+            for (let subject of this.payload) {
+                let result = rule.exec(ruleset.params, subject);
+                resultset.push(result);
+            }
+            this.resultsets.push(resultset);
+        }
+    }
+    /**
+     * Returns true if there are any {ResultSet}s
+     */
+    any() {
+        return this.resultsets.length > 0;
+    }
+    /**
+     * Returns the list of {ResultSet}s
+     */
+    results() {
+        return this.resultsets;
+    }
+}
+exports.default = Engine;
 
 
 /***/ }),
@@ -29853,6 +30704,100 @@ module.exports = new Type('tag:yaml.org,2002:merge', {
   kind: 'scalar',
   resolve: resolveYamlMerge
 });
+
+
+/***/ }),
+
+/***/ 990:
+/***/ (function(__unusedmodule, exports, __webpack_require__) {
+
+"use strict";
+
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const ansi_colors_1 = __importDefault(__webpack_require__(434));
+/**
+ * The {Outputter} class is responsible for pretty printing output to the
+ * GitHub Workflow console. It leads a simple life.
+ */
+class Outputter {
+    /**
+     * Pretty prints each {ResultSet} to the console and a summary of
+     * the number of passes and fails.
+     *
+     * TODO: Add an option for 'verbose' printing
+     * @param resultsets
+     */
+    printResultSet(resultset) {
+        let set = resultset.hash();
+        // Print the status header for the {ResultSet}
+        set.pass ?
+            console.log(ansi_colors_1.default.green.bold(`\u2713 ${set.status}`), ansi_colors_1.default.green(`${set.rule} with range ${set.ruleset.range}`)) :
+            console.log(ansi_colors_1.default.red.bold(`\u2A2F ${set.status}`), ansi_colors_1.default.red(`${set.rule} with range ${set.ruleset.range}`));
+        // TODO: Is there a better way to insert an empty line (other than \n above)?
+        console.log();
+        // Print the optional error if the ruleset failed
+        if (!set.pass && set.ruleset.error) {
+            this.printIndented(ansi_colors_1.default.gray.italic(set.ruleset.error.trim()));
+            console.log();
+        }
+        // Print the individual results
+        for (let result of set.results)
+            this.printResult(result);
+    }
+    /**
+     * Pretty prints an individual {Result} to the console.
+     *
+     * TODO: Add an option for 'verbose' printing
+     * @param result
+     */
+    printResult(result) {
+        let res = result.hash();
+        // Print the header for the result
+        res.pass ?
+            this.printIndented(ansi_colors_1.default.green(`${res.status} ${res.subjectId}`)) :
+            this.printIndented(ansi_colors_1.default.red(`${res.status} ${res.subjectId}`));
+        // Print the result message only if the rule failed
+        // TODO: Verbose printing should always display the message
+        if (!res.pass)
+            this.printIndented(`${res.message}`);
+        console.log();
+    }
+    /**
+     * Prints a summary indicating the number of {ResultSet}s that passed
+     * and failed.
+     * @param resultsets
+     */
+    printSummary(resultsets) {
+        let pass = 0;
+        let fail = 0;
+        let plural = resultsets.length == 1 ? '' : 's';
+        for (let resultset of resultsets) {
+            resultset.pass() ? pass++ : fail++;
+        }
+        console.log(`\u28FF Ran ${resultsets.length} ruleset${plural},`, ansi_colors_1.default.green(`${pass} passed`), 'and', ansi_colors_1.default.red(`${fail} failed\n`));
+    }
+    /**
+     * Prints a separator. Neat.
+     */
+    printSeparator(message) {
+        console.log(ansi_colors_1.default.cyan(message));
+    }
+    /**
+     * Indents each line of a string by the indicated number of tabs.
+     * @param message
+     * @param level
+     */
+    printIndented(message, level = 1) {
+        const indent = "\t".repeat(level);
+        for (let line of message.split("\n")) {
+            console.log(`${indent}${line}`);
+        }
+    }
+}
+exports.default = Outputter;
 
 
 /***/ }),
